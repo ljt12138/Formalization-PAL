@@ -76,7 +76,7 @@ inductive proof_of {α agent : Type} :
               : proof_of p (φ↣ψ↣γ) → proof_of (proof.uncurry φ ψ γ) (φ&ψ↣γ)
 | curry (φ ψ γ : sentence α agent) (p : proof α agent)
               : proof_of p (φ&ψ↣γ) → proof_of (proof.curry φ ψ γ) (φ↣ψ↣γ)
-
+ 
 def provable {α agent : Type} (φ : sentence α agent) :=
   ∃ pf, proof_of pf φ 
 

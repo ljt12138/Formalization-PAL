@@ -239,7 +239,7 @@ def henkin_worlds (α agent : Type) : worlds α agent (decider_world α agent) :
   equiv := 
   begin
     intros i, unfold equivalence reflexive symmetric transitive, split,
-    { intros, apply access.reflexive }, split,
+    { intros, apply access.reflexive, exact x }, split,
     { intros x y, apply access.symmetric }, 
     { intros x y z, apply access.transitive }
   end
@@ -313,7 +313,8 @@ def dec {α agent : Type} (f' : ℕ → option α) (g' : ℕ → option agent)
                | _ := none
                end
 
-lemma sentence.encodable {α agent : Type} :
+@[instance]
+lemma sentence_encodable {α agent : Type} :
   encodable α → encodable agent → encodable (sentence α agent) :=
 begin
   intros enc₁ enc₂, 
@@ -672,6 +673,97 @@ end
 
 /-                ----4. Correctness of Henkin model----              -/
 
+lemma decide_conjunction_know {α agent : Type} {s : decider_world α agent} 
+      {Γ : list _} {i : agent} :
+  (∀ φ, φ ∈ Γ → decides s □(i:φ)) → decides s □(i : conjunction Γ) :=
+begin
+  intros h, induction Γ with φ Γ ih,
+  { simp, apply decide_tauto, apply know_truth, apply id_provable },
+  {
+    cases Γ with ψ Γ, 
+    { unfold conjunction, apply h, simp },
+    {
+      unfold conjunction, 
+      have ht : decides s (□(i:φ)↣□(i:conjunction(ψ::Γ))↣□(i:φ&conjunction(ψ::Γ))),
+      { apply decide_tauto, apply know_and_intro },
+      apply decide_mp, apply decide_mp, exact ht, 
+      apply h, simp, apply ih, intros, apply h, simp [a] 
+    }
+  }
+end
+
+lemma neighborhood {α agent : Type} [encodable (sentence α agent)] 
+  (s : decider_world α agent) (φ : sentence α agent) (i : agent) :
+    decides s (□(i : φ)↣⊥) → (∃ t, (s ∼{i} t) ∧ decides t (φ↣⊥)) :=
+begin
+  intros a, 
+  have ht : ∃ t' : decider α agent, (∀ ψ, (ψ=φ↣⊥ ∨ decides s □(i:ψ)) ↔ t' ψ),
+  { existsi (λ ψ, ψ = φ↣⊥ ∨ decides s □(i : ψ)), simp },
+  cases ht with t' h₁,
+  cases em (consistent_set t'), 
+  {
+    cases dcomplete_extension t' h with t h₂,
+    existsi t, split,
+    {
+      simp, intros ψ h₃, apply h₂,
+      exact (h₁ ψ).mp (or.inr h₃)
+    },
+    { apply (h₂ (φ↣⊥)), apply (h₁ _).mp, left, refl }
+  },
+  {
+    simp at h, cases h with Γ h₂,
+    cases em (φ↣⊥ ∈ Γ),
+    {
+      cases (contra_imp_conseq h h₂.right) with Γ' h₃,
+      have ht₁' : ⊢ conjunction Γ' ↣ φ,
+      {
+        apply hs_rule, exact h₃.right.right,
+        existsi proof.ax3 _, prover
+      },
+      have ht₁ : decides s (□(i : conjunction Γ') ↣ □(i : φ)),
+      {
+        apply decide_tauto, cases ht₁', 
+        existsi proof.mp (proof.ax4 _ _ _) (proof.truth _), prover
+      },
+      have ht₂ : ∀ ψ, ψ ∈ Γ' → decides s □(i : ψ),
+      {
+        intros ψ h', 
+        cases (h₁ ψ).mpr (h₂.left ψ (h₃.left h')), 
+        { exfalso, apply h₃.right.left, rewrite ← h_1, exact h' },
+        { exact h_1 }
+      },
+      have ht₃ := decide_conjunction_know ht₂,
+      have ht₄ : decides s ⊥,
+      {
+        apply decide_mp, exact a, 
+        apply decide_mp, exact ht₁,
+        exact ht₃
+      },
+      exfalso, cases s with s cons, apply cons.left [⊥],
+      intros, simp at a_1, simp at ht₄, rewrite a_1, exact ht₄,
+      simp, apply id_provable
+    },
+    {
+      have ht₁ : ∀ ψ, ψ ∈ Γ → decides s □(i : ψ),
+      { 
+        intros ψ h', cases (h₁ ψ).mpr (h₂.left _ h'), 
+        { exfalso, apply h, rewrite ← h_1, exact h' },
+        { exact h_1 }
+      },
+      have ht₂ := decide_conjunction_know ht₁, 
+      have ht₃ : decides s ⊥, 
+      { 
+        apply decide_mp, apply decide_tauto, exact h₂.right,
+        apply decide_mp, apply decide_tauto, existsi proof.ref _ _, 
+        apply proof_of.ref, exact i, exact ht₂,
+      },
+      exfalso, cases s with s cons, apply cons.left [⊥],
+      intros, simp at a_1, simp at ht₃, rewrite a_1, exact ht₃,
+      simp, apply id_provable
+    }
+  }
+end 
+
 theorem henkin_correctness {α agent : Type} [encodable (sentence α agent)]:
   ∀ φ, static φ → ∀ s : decider_world α agent, (decides s φ ↔ ⦃s⦄ ⊨ φ) :=
 begin
@@ -727,7 +819,11 @@ begin
     {
       intros a₁, 
       have a₂ : ⦃s⦄ ⊨ φ, { apply a₁, apply access.reflexive, exact s },
-      sorry
+      classical, by_contra,
+      cases (neighborhood s φ i ((decide_not_iff_not_decide _ _).mp a)) with t h₁,
+      apply (decide_not_iff_not_decide _ _).mpr h₁.right,
+      apply (ih st_a_1 t).mpr, 
+      apply a₁, exact h₁.left
     }
   },
   { cases st }

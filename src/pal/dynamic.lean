@@ -77,7 +77,7 @@ begin
 end
 
 lemma recursion_imply {α agent : Type} : ∀ (φ ψ γ : sentence α agent), 
-  ([!φ]ψ↣γ) ≡ ([!φ]ψ) ↣ ([!φ]γ) := 
+  ([!φ](ψ↣γ)) ≡ ([!φ]ψ) ↣ ([!φ]γ) := 
 begin
   intros, unfold sem_equiv, intros, split,
   { 
@@ -101,16 +101,16 @@ begin
   },
   {
     intros a, unfold evaluate at *, intros a₁ t a₂,
-    apply a,  { exact a₁ }, 
+    apply a, { exact a₁ }, 
     { 
       simp at a₂, cases a₂,
       { rewrite a₂, cases M.equiv i, apply left },
-      { tauto } 
+      { exact a₂.right.right } 
     },
     { 
       simp at a₂, cases a₂, 
       { rewrite ← a₂, exact a₁ },
-      { tauto }
+      { exact a₂.right.left }
     }
   }
 end

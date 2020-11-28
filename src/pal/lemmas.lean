@@ -13,6 +13,13 @@ begin
   existsi proof.mp _ _, prover
 end
 
+lemma know_truth {α agent : Type} {φ : sentence α agent} (i : agent) : 
+  ⊢ φ → ⊢ □(i:φ) :=
+begin
+  intros h, cases h,
+  existsi proof.truth _, prover
+end
+
 lemma id_provable {α agent : Type} (φ : sentence α agent) :
   ⊢ φ ↣ φ :=
 begin
@@ -193,6 +200,17 @@ begin
   cases h₁, 
   existsi proof.conj _ _ _ _ _,
   apply proof_of.conj, exact h₁_h, exact h₂
+end
+
+lemma know_and_intro {α agent : Type} {φ ψ : sentence α agent} {i : agent} : 
+  ⊢ □(i : φ) ↣ □(i : ψ) ↣ □(i : φ&ψ) :=
+begin
+  have h₁ : ⊢ □(i : φ↣ψ↣φ&ψ),
+  { apply know_truth, apply curry, apply id_provable },
+  have h₂ : ⊢ □(i : φ) ↣ □(i : ψ↣φ&ψ),
+  { cases h₁, existsi proof.mp (proof.ax4 _ _ _) _, prover },
+  apply hs_rule, exact h₂,
+  existsi proof.ax4 _ _ _, prover
 end
 
 end pal_logic
