@@ -72,7 +72,6 @@ begin
       intros a₁ a₂ t a₃,
       apply (ψ_ih st_a_1 W M t).mp, 
       exact ((recursion_box ψ_a ϕ ψ_a_1 W M s).mp a₁ a₂ _ a₃)
-      -- rewrite ← (iff.to_eq (recursion_box ψ_a ϕ (pal_reduce1 ϕ ψ_a_1) W M s)),
     },
     {
       intros a₁, 
