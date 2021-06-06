@@ -79,14 +79,14 @@ end
 lemma recursion_imply {α agent : Type} : ∀ (φ ψ γ : sentence α agent), 
   ([!φ](ψ↣γ)) ≡ ([!φ]ψ) ↣ ([!φ]γ) := 
 begin
-  intros, unfold sem_equiv, intros, split,
+  intros, unfold sem_equiv evaluate, intros, split,
   { 
-    intros a, unfold evaluate at *, intros a₁ a₂, 
-    apply a, exact a₂, exact a₁ a₂
+    intros a a₁ a₂,
+    exact a a₂ (a₁ a₂)
   },
   {
-    intros a, unfold evaluate at *, intros a₁ a₂, 
-    apply a, intros, exact a₂, exact a₁
+    intros a a₁ a₂, 
+    exact a (λ x, a₂) a₁
   }
 end
 
